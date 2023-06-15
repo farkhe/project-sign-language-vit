@@ -23,7 +23,7 @@ plt.style.use('fivethirtyeight')
 use_cuda = torch.cuda.is_available()
 device = torch.device('cuda' if use_cuda else 'cpu')
 
-# Setting base path and other constants
+# Setting base path and hyperparameter
 #BASE_PATH = 'alpha1' for version 1 of dataset
 BASE_PATH = 'alpha2'
 IMG_SIZE = 224
