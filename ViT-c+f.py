@@ -17,6 +17,7 @@ from statistics import mean
 import numpy as np
 from scipy.spatial.distance import cdist
 import random
+from transformers import ViTFeatureExtractor, ViTForImageClassification
 
 
 plt.style.use('fivethirtyeight')
@@ -30,7 +31,7 @@ BASE_PATH = 'alpha2'
 IMG_SIZE = 224
 BATCH_SIZE = 16
 LR = 1e-4
-EPOCHS = 7
+EPOCHS = 10
 num_classes = 28
 num_clusters = num_classes
 
@@ -193,6 +194,7 @@ train_accs = []
 val_losses = []
 val_accs = []
 
+to_pil = transforms.ToPILImage()
 def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
 
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -210,6 +212,7 @@ def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
 
             total_acc_train = 0
             total_loss_train = 0
+            feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224")   
 
             for train_images, train_labels, x1, y1, x2, y2 in tqdm(train_dataloader):
 
@@ -233,7 +236,16 @@ def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
                 acc = (predicted == train_labels).sum().item()
                 total_acc_train += acc
                 #add fcm part
-                features.append(output.cpu().detach())
+                normalized_images = train_images
+            
+                # Convert normalized images to PIL images
+                pil_images = [to_pil(image) for image in normalized_images]
+                
+                # Extract features using the feature_extractor
+                inputs = feature_extractor(images=pil_images, return_tensors="pt")
+                last_hidden_state = inputs.pixel_values
+            
+                features.append(last_hidden_state)
                 features = torch.cat(features, dim=0)
                 features = features.view(features.size(0), -1)
     
@@ -357,4 +369,5 @@ predict(model, test_dataset)
 sub_df['image_class'] = preds
 sub_df.to_csv('classification_fin.csv', index=False)
 print(sub_df.head())
+
 
