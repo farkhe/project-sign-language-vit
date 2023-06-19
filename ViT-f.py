@@ -158,7 +158,7 @@ def FCM(data, centers, m=2, max_iters=30, tol=1e-5):
     return preds
 
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
 to_pil = transforms.ToPILImage()
 def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
 
@@ -195,8 +195,8 @@ def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
             acc = (predicted == train_labels).sum().item()
             total_acc_train += acc
             
-            # Normalize the input images
-            normalized_images = torch.stack([normalize(image) for image in train_images])
+            
+            normalized_images =  train_images
             
             # Convert normalized images to PIL images
             pil_images = [to_pil(image) for image in normalized_images]
