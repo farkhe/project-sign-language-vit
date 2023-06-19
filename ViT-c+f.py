@@ -257,7 +257,7 @@ def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
                 
                 total_loss = clustering_loss + batch_loss
             
-                batch_loss.backward()
+                total_loss.backward()
                 optimizer.step()
                 
             scheduler.step()
