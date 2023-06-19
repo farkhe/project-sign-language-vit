@@ -7,7 +7,8 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 import torch.optim as optim
 import torchvision.models as models
-
+from transformers import ViTFeatureExtractor, ViTForImageClassification
+import torch
 from PIL import Image
 from tqdm.notebook import tqdm
 from sklearn import model_selection
@@ -157,7 +158,8 @@ def FCM(data, centers, m=2, max_iters=30, tol=1e-5):
     return preds
 
 
-
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+to_pil = transforms.ToPILImage()
 def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
 
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -176,37 +178,44 @@ def train_model(model, train_dataset, val_dataset, learning_rate, epochs):
         total_acc_train = 0
         total_loss_train = 0
         
-
+        feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224")   
         for train_images, train_labels in tqdm(train_dataloader):
-
             train_images = train_images.to(device)
             train_labels = train_labels.to(device)
             features = []
-
+        
             optimizer.zero_grad()
-
+        
             output = model(train_images)
-
+        
             batch_loss = criterion(output.logits, train_labels.long())
-            total_loss_train += batch_loss.item() 
-
+            total_loss_train += batch_loss.item()
+        
             _, predicted = torch.max(output.logits.data, 1)
             acc = (predicted == train_labels).sum().item()
             total_acc_train += acc
-            # add fcm part to the training loop
-            features.append(output.logits.cpu().detach())
+            
+            # Normalize the input images
+            normalized_images = torch.stack([normalize(image) for image in train_images])
+            
+            # Convert normalized images to PIL images
+            pil_images = [to_pil(image) for image in normalized_images]
+            
+            # Extract features using the feature_extractor
+            inputs = feature_extractor(images=pil_images, return_tensors="pt")
+            last_hidden_state = inputs.pixel_values
+        
+            features.append(last_hidden_state)
             features = torch.cat(features, dim=0)
             features = features.view(features.size(0), -1)
-
+        
             centers = torch.stack([random.choice(features) for _ in range(num_clusters)])
             centers = centers.to(device)
             preds = FCM(features, centers)
-
+        
             clustering_loss = criterion(output.logits, preds.long())
-            
             total_loss = clustering_loss + batch_loss
-
-            #batch_loss.backward()
+        
             total_loss.backward()
             optimizer.step()
 
@@ -308,6 +317,10 @@ predict(model, test_dataset)
 sub_df['image_class'] = preds
 sub_df.to_csv('classification_fin.csv', index=False)
 print(sub_df.head())
+
+
+
+
 
 
 
