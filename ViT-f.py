@@ -290,37 +290,64 @@ plt.title('Loss / Accuracy on train / validation')
 plt.legend()
 plt.show()
 
-
 sub_df = pd.read_csv('alpha2/classification_fin.csv')
 sub_df.head()
 preds = []
 test_dataset = signDataset(df=sub_df, data_path=BASE_PATH, mode='test', transforms=transforms_val)
-
+mapping = {
+    "0": "ALIF",
+    "1": "BAA",
+    "2": "TA",
+    "3": "THA",
+    "4": "JEEM",
+    "5": "HAA",
+    "6": "KHAA",
+    "7": "DELL",
+    "8": "DHELL",
+    "9": "RAA",
+    "10": "ZAY",
+    "11": "SEEN",
+    "12": "SHEEN",
+    "13": "SAD",
+    "14": "DAD",
+    "15": "TAA",
+    "16": "DHAA",
+    "17": "AYN",
+    "18": "GHAYN",
+    "19": "FAA",
+    "20": "QAAF",
+    "21": "KAAF",
+    "22": "LAAM",
+    "23": "MEEM",
+    "24": "NOON",
+    "25": "HA",
+    "26": "WAW",
+    "27": "YA",
+}
 def predict(model, test_dataset):
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE)
     with torch.no_grad():
         for test_images, test_labels, _, _, _, _ in tqdm(test_dataloader):
             test_images = test_images.to(device)
-            test_labels = test_labels.to(device)
+            
 
             output = model(test_images)
 
             _, predicted = torch.max(output.logits.data, 1)
-            preds.extend(predicted.cpu().data.numpy())
+            predicted = predicted.cpu().data.numpy().tolist()  # Convert predicted to a list
+
+            preds.extend([mapping[str(pred)] for pred in predicted])
+
 
         print(preds)
     return preds
 
 predict(model, test_dataset)
 
-
+# Saving the predictions to a CSV file
 sub_df['image_class'] = preds
 sub_df.to_csv('classification_fin.csv', index=False)
 print(sub_df.head())
-
-
-
-
 
 
 
